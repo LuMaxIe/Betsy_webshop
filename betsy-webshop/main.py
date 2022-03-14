@@ -13,7 +13,7 @@ def reset_database():  # <---!!! Warning: Resets database with cleared Tables !!
         models.Tag,
         models.Product,
         models.ProductTag,
-        # models.User,
+        models.User,
         models.UserProduct,
         models.Transaction
     ])
@@ -88,6 +88,24 @@ def add_product(name: str, description: str, price: float, amount: int, tags: li
         print("Added product")
 
 
+def list_users():
+    users = models.User.select()
+    for u in users:
+        print(f"{u.__dict__['__data__']}\n")
+
+
+def list_tags():
+    tags = models.Tag.select()
+    for t in tags:
+        print(f"{t.__dict__['__data__']}\n")
+
+
+def list_products():
+    prods = models.Product.select()
+    for p in prods:
+        print(f"{p.__dict__['__data__']}\n")
+
+
 def search(term):
     try:
         items = models.Product.select(
@@ -95,21 +113,18 @@ def search(term):
             models.Product.description,
             models.Product.price
         ).where(
-            (fuzz.ratio(models.Product.name, term.lower()) > 95) |
-            (fuzz.partial_ratio(models.Product.name, term.lower()) > 95) |
-            (fuzz.token_sort_ratio(models.Product.description, term) > 95)
+            (fuzz.ratio(models.Product.name, term.lower()) > 95)
+            # (fuzz.partial_ratio(models.Product.name, term.lower()) > 95) |
+            # (fuzz.token_sort_ratio(models.Product.description, term) > 95)
         )
-        if len(items) == 0:
-            raise ValueError
-        else:
-            for item in items:
-                print(fuzz.ratio(item.name, term.lower()))
-                print(fuzz.partial_ratio(item.name, term.lower()))
-                print(fuzz.token_sort_ratio(item.description, term))
-                print(
-                    f"""\nProduct: {item.name}\nDescription: {item.description}\nPrice: {item.price}\n""")
 
-    except ValueError:  # Must change to prevent bare exception
+        for item in items:
+            print(fuzz.ratio(item.name, term.lower()))
+            print(fuzz.partial_ratio(item.name, term.lower()))
+            print(fuzz.token_sort_ratio(item.description, term))
+            print(f"\nProduct: {item.name}\nDescription: {item.description}\nPrice: {item.price}\n")
+
+    except peewee.DoesNotExist:
         print(f"No items found with keyword: {term}")
 
 
@@ -122,7 +137,7 @@ def list_user_products(user_id):
                     .where(models.User.id == user_id))
 
         for prod in products:
-            print(prod.name)
+            print(f"{prod.name}\n{prod.description}\n{prod.price}\n")
 
     except peewee.IntegrityError as Error:
         print(Error)
@@ -137,7 +152,7 @@ def list_products_per_tag(tag_id):
                     .where(models.Tag.id == tag_id))
 
         for prod in products:
-            print(prod.name)
+            print(f"{prod.name}\n{prod.description}\n{prod.price}\n")
 
     except peewee.IntegrityError as Error:
         print(Error)
@@ -155,14 +170,21 @@ def update_stock(product_id, new_quantity):
 
 def purchase_product(product_id, buyer_id, seller_id, quantity):
     try:
-        models.Transaction.create(
-            buyer=buyer_id,
-            seller=seller_id,
-            product=product_id,
-            amount=quantity
-        )
+        product = models.Product.get_by_id(product_id)
+        if(product.quantity - quantity < 0):
+            raise ValueError
+        else:
+            update_stock(product_id, (product.quantity - quantity))
+            models.Transaction.create(
+                buyer=buyer_id,
+                seller=seller_id,
+                product=product_id,
+                amount=quantity
+            )
     except peewee.IntegrityError as Error:
         print(Error)
+    except ValueError:
+        print("Not enough in stock")
     else:
         print("Transaction added")
 
