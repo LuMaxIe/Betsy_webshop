@@ -36,5 +36,5 @@ Supply a key from "list_products" and supply a new quantity for the product.
 ### Add a transaction
 Supply product, buyer and seller IDs + the quantity of products in the transaction
 
-## remove a product
-Remove a product by ID
+### remove a product
+Remove a product by supplying an product ID
