@@ -1,7 +1,7 @@
 import peewee
 import models
 from playhouse.migrate import SqliteMigrator, migrate
-
+from fuzzywuzzy import fuzz
 
 db = peewee.SqliteDatabase(
     'Betsy.db',
@@ -31,3 +31,12 @@ def check_for_new_tags(product_tags: list) -> list:
     db_tags = [tag.name.lower() for tag in models.Tag.select()]
     new_tags = [{'name': new_tag} for new_tag in product_tags if new_tag.lower() not in db_tags]
     return new_tags
+
+
+def search_ratios(keyword, product_name, product_description, value):
+    ratio = fuzz.ratio(product_name, keyword)
+    p_ratio = fuzz.partial_ratio(product_name, keyword)
+    tokenized = fuzz.partial_token_set_ratio(product_description, keyword)
+
+    if ratio > value or p_ratio > value or tokenized > value:
+        return True

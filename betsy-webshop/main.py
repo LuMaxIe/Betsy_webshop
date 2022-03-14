@@ -5,7 +5,6 @@ import models
 import helpers
 import peewee
 import cli
-from fuzzywuzzy import fuzz
 
 
 def reset_database():  # <---!!! Warning: Resets database with cleared Tables !!!--->
@@ -112,17 +111,15 @@ def search(term):
             models.Product.name,
             models.Product.description,
             models.Product.price
-        ).where(
-            (fuzz.ratio(models.Product.name, term.lower()) > 95)
-            # (fuzz.partial_ratio(models.Product.name, term.lower()) > 95) |
-            # (fuzz.token_sort_ratio(models.Product.description, term) > 95)
         )
-
+        found = False
         for item in items:
-            print(fuzz.ratio(item.name, term.lower()))
-            print(fuzz.partial_ratio(item.name, term.lower()))
-            print(fuzz.token_sort_ratio(item.description, term))
-            print(f"\nProduct: {item.name}\nDescription: {item.description}\nPrice: {item.price}\n")
+            if helpers.search_ratios(term, item.name, item.description, 50):
+                found = True
+                print(
+                    f"\nProduct: {item.name}\nDescription: {item.description}\nEU: {item.price}\n")
+        if not found:
+            print("No items matched your query")
 
     except peewee.DoesNotExist:
         print(f"No items found with keyword: {term}")
@@ -191,7 +188,10 @@ def purchase_product(product_id, buyer_id, seller_id, quantity):
 
 def remove_product(product_id):
     try:
-        models.Product.delete().where(models.Product.id == product_id).execute()
+        prod = models.Product.get(models.Product.id == product_id)
+        models.ProductTag.delete().where(models.ProductTag.product == prod).execute()
+        models.UserProduct.delete().where(models.UserProduct.product == prod).execute()
+        prod.delete_instance()
     except peewee.IntegrityError as Error:
         print(Error)
     else:

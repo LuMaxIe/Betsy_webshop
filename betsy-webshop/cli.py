@@ -79,12 +79,13 @@ def cli_interface():
         "--seller_id", required=True, help="the id of the user that sells the product")
     product_purchase.add_argument(
         "--quantity", required=True, type=int, help="The amount of products sold in the transaction"
-        )
+    )
 
     # Remove product
     product_removal = subparsers.add_parser("remove_product")
     product_removal.add_argument(
-        "--product_id", required=True, help="Id of the product to remove from product table")
+        "--product_id", required=True,
+        type=int, help="Id of the product to remove from product table")
 
     # List data
     subparsers.add_parser("list_users")
